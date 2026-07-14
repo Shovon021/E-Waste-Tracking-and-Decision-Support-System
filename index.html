@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Enterprise E-Waste Asset Tracking & Decision Support System - An enterprise dashboard for uploading datasets, tracking IT assets, recommending disposal methods, and live updating sustainability metrics.">
+  <title>Enterprise E-Waste Tracking & Decision Support Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+
+<!-- ======== LOGIN VIEW ======== -->
+<div id="login-view" class="login-view">
+  <div class="login-form-container">
+    <h2>E-Waste Tracking and Decision Support System</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="username" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" required>
+      </div>
+      <button type="submit" class="btn btn-primary login-btn">Log In</button>
+    </form>
+  </div>
+</div>
+
+<!-- ======== SETTINGS MODAL ======== -->
+<div id="settingsModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Dashboard Settings</h2>
+      <button id="btnCloseSettings" class="btn-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="settingsForm">
+        <div class="form-group">
+          <label>Electricity Rate (BDT per kWh)</label>
+          <input type="number" step="0.01" id="inputRateBDT" required>
+        </div>
+        <div class="form-group">
+          <label>Emission Factor (kg CO₂ per kWh)</label>
+          <input type="number" step="0.01" id="inputEmissionFactor" required>
+        </div>
+        <div class="form-group">
+          <label>Average Daily Operating Hours</label>
+          <input type="number" step="0.5" id="inputDailyHours" required>
+        </div>
+        <div class="modal-actions" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" id="btnCancelSettings" class="btn btn-outline" style="padding: 10px 20px; border: 1px solid #ccc; background: white; border-radius: 6px; cursor: pointer;">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="padding: 10px 20px;">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ======== LOADING VIEW ======== -->
+<div id="loading-view" class="loading-view" style="display: none;">
+  <div class="loading-pulse">
+    <img src="logo3.svg" alt="Loading...">
+  </div>
+</div>
+
+<!-- ======== DASHBOARD VIEW ======== -->
+<div id="dashboard-view" style="display: none;">
+<div class="app-layout">
+  
+  <!-- ======== MOBILE HEADER ======== -->
+  <header class="mobile-header">
+    <div class="mobile-brand">
+      <button id="mobileSidebarToggle" class="sidebar-logo" style="margin-right: 12px; background: transparent;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <h3>E-Waste Panel</h3>
+    </div>
+  </header>
+  
+  <!-- ======== SIDEBAR ======== -->
+  <aside class="app-sidebar">
+    <div class="sidebar-brand">
+      <button id="sidebarToggle" class="sidebar-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <div class="brand-info">
+        <h3>E-Waste Panel</h3>
+      </div>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-tab="dashboard-tab">
+        <span class="nav-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        </span> <span class="nav-label">Overview Dashboard</span>
+      </button>
+      <button class="nav-item" data-tab="data-tab">
+        <span class="nav-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </span> <span class="nav-label">Data Management</span>
+      </button>
+      <button class="nav-item" data-tab="inventory-tab">
+        <span class="nav-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        </span> <span class="nav-label">Inventory Registry</span>
+      </button>
+      <button class="nav-item" data-tab="impact-tab">
+        <span class="nav-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+        </span> <span class="nav-label">Environmental Impact</span>
+      </button>
+      <button class="nav-item" data-tab="rules-tab">
+        <span class="nav-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        </span> <span class="nav-label">Rules & Deployment</span>
+      </button>
+
+      <div style="flex-grow: 1;"></div> <!-- Spacer to push settings down if needed -->
+      
+      <button class="nav-item" id="btnOpenSettings">
+        <span class="nav-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </span> <span class="nav-label">Settings</span>
+      </button>
+
+    </nav>
+
+    <!-- ======== SIDEBAR SUSTAINABILITY ANIMATION ======== -->
+    <div class="sidebar-promo">
+      <div class="promo-graphic">
+        <img src="logo1.svg" class="animated-sustainability-svg" alt="Green Lifecycle System Logo" />
+      </div>
+      
+      <!-- LOGOUT BUTTON (Centered, White) -->
+      <button class="nav-item btn-logout" id="btnLogout">
+        <span class="nav-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </span>
+        <span class="nav-label">Log Out</span>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ======== MAIN CONTENT AREA ======== -->
+  <main class="app-main">
+    
+    <header class="app-header">
+      <div class="header-container">
+        <div class="header-text">
+          <h1 class="app-header__title">Enterprise E-Waste Decision Support Dashboard</h1>
+        </div>
+        <img src="cat2.svg" alt="Cat Mascot" style="height: 110px; margin-left: auto; margin-right: 20px;" />
+      </div>
+    </header>
+
+    <!-- ======== TAB 1: OVERVIEW DASHBOARD ======== -->
+    <div class="tab-panel active" id="dashboard-tab">
+      
+      <!-- Summary Metrics -->
+      <section id="summarySection" class="animate-in">
+        <h2 class="section-title">
+          <span class="section-title__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-inline-title"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          </span> Environmental & Economic Overview
+        </h2>
+        <div class="summary-grid">
+          <!-- Row 1: Totals -->
+          <div class="summary-card summary-card--primary">
+            <span class="summary-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-svg"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            </span>
+            <span class="summary-card__label">Total Assets Tracked</span>
+            <span class="summary-card__value" id="totalItems">0</span>
+            <span class="summary-card__sub">active inventory registry</span>
+          </div>
+          <div class="summary-card summary-card--secondary">
+            <span class="summary-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-svg"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            </span>
+            <span class="summary-card__label">Total E-Waste Weight</span>
+            <span class="summary-card__value" id="totalWeight">0 kg</span>
+            <span class="summary-card__sub">hardware weight in inventory</span>
+          </div>
+          <div class="summary-card summary-card--secondary">
+            <span class="summary-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-svg"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"></path><polyline points="13 11 9 17 15 17 11 23"></polyline></svg>
+            </span>
+            <span class="summary-card__label">Total CO₂ Emissions</span>
+            <span class="summary-card__value" id="totalCO2Emissions">0 kg</span>
+            <span class="summary-card__sub">annual fleet carbon footprint</span>
+          </div>
+          <div class="summary-card summary-card--secondary">
+            <span class="summary-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-svg"><rect x="2" y="6" width="20" height="12" rx="2"></rect><path d="M12 12h.01"></path><path d="M17 12h.01"></path><path d="M7 12h.01"></path></svg>
+            </span>
+            <span class="summary-card__label">Total Annual BDT Cost</span>
+            <span class="summary-card__value" id="totalAnnualBDT">৳0</span>
+            <span class="summary-card__sub">annual electricity expense (BPDB)</span>
+          </div>
+
+          <!-- Row 2: Savings & Diversion -->
+          <div class="summary-card summary-card--success">
+            <span class="summary-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-svg"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 2 5.5a7 7 0 0 1-7 7h-3v5.5z"></path></svg>
+            </span>
+            <span class="summary-card__label">CO₂ Emissions Avoided</span>
+            <span class="summary-card__value" id="co2Saved">0 kg</span>
+            <span class="summary-card__sub">net carbon offset</span>
+          </div>
+          <div class="summary-card summary-card--warning">
+            <span class="summary-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-svg"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </span>
+            <span class="summary-card__label">Annual BDT Saved</span>
+            <span class="summary-card__value" id="costSavedBDT">৳0</span>
+            <span class="summary-card__sub">electricity cost savings (BPDB)</span>
+          </div>
+          <div class="summary-card summary-card--info">
+            <span class="summary-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-svg"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+            </span>
+            <span class="summary-card__label">Landfill Diversion Rate</span>
+            <span class="summary-card__value" id="diversionRate">0%</span>
+            <span class="summary-card__sub">avoided landfill pollution</span>
+          </div>
+          <div class="summary-card summary-card--success">
+            <span class="summary-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-svg"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            </span>
+            <span class="summary-card__label">Reclaimed Assets</span>
+            <span class="summary-card__value" id="reuseCount">0</span>
+            <span class="summary-card__sub">reused or repaired items</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section id="chartsSection" class="animate-in">
+        <h2 class="section-title">
+          <span class="section-title__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-inline-title"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          </span> Visual Analytics & Distribution
+        </h2>
+        <div class="charts-grid">
+          <div class="chart-card">
+            <canvas id="categoryChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <canvas id="actionChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <canvas id="conditionChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <canvas id="departmentChart"></canvas>
+          </div>
+          <div class="chart-card chart-card--wide">
+            <canvas id="comparisonChart"></canvas>
+          </div>
+        </div>
+      </section>
+      
+    </div>
+
+    <!-- ======== TAB 2: DATA MANAGEMENT ======== -->
+    <div class="tab-panel" id="data-tab">
+      <section class="management-section animate-in">
+        <h2 class="section-title">
+          <span class="section-title__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-inline-title"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </span> Data Management Panel
+        </h2>
+        <div class="management-grid">
+          
+          <!-- Upload File -->
+          <div class="management-card">
+            <h3 class="card-subtitle" style="display: flex; align-items: center;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Upload Real Dataset
+              <button type="button" class="btn-inline" onclick="alert('Expected CSV Headers:\nitem_id, category, device_name, brand, department, purchase_year, weight_kg, condition_score, power_watts')" style="margin-left: 8px; color: var(--text-muted); display: inline-flex; align-items: center;" title="View Expected CSV Headers">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              </button>
+            </h3>
+            <p class="card-desc">Upload a CSV file (e.g. from Kaggle, Excel, or IT assets) to dynamically populate the dashboard. Columns will be automatically mapped.</p>
+            
+            <div class="upload-dropzone" id="dropZone">
+              <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+              <span class="upload-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              </span>
+              <p class="upload-text">Drag & drop your CSV file here or <button class="btn btn-inline" id="browseBtn">browse files</button></p>
+              <span class="file-info" id="fileInfo">No file selected</span>
+            </div>
+            
+          </div>
+
+          <!-- Add New Item -->
+          <div class="management-card">
+            <h3 class="card-subtitle">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Manually Add IT Asset
+            </h3>
+            <p class="card-desc">Input a new electronic device. All metrics, charts, and evaluations will update live on submit.</p>
+            
+            <form class="form-grid" id="addItemForm">
+              <div class="form-group">
+                <label for="formCategory">Category *</label>
+                <select id="formCategory" required>
+                  <option value="Computer">Computer</option>
+                  <option value="Monitor">Monitor</option>
+                  <option value="Peripheral">Peripheral</option>
+                  <option value="Mobile Device">Mobile Device</option>
+                  <option value="Battery">Battery</option>
+                  <option value="Networking">Networking</option>
+                  <option value="Storage">Storage</option>
+                  <option value="Others">Others</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="formDevice">Device Model *</label>
+                <input type="text" id="formDevice" placeholder="e.g. OptiPlex 7080 Desktop" required>
+              </div>
+              <div class="form-group">
+                <label for="formBrand">Brand *</label>
+                <input type="text" id="formBrand" placeholder="e.g. Dell" required>
+              </div>
+              <div class="form-group">
+                <label for="formDept">Department *</label>
+                <input type="text" id="formDept" placeholder="e.g. Engineering" required>
+              </div>
+              <div class="form-group">
+                <label for="formYear">Purchase Year *</label>
+                <input type="number" id="formYear" min="2010" max="2026" value="2022" required>
+              </div>
+              <div class="form-group">
+                <label for="formWeight">Weight (kg) *</label>
+                <input type="number" id="formWeight" step="0.01" min="0.01" placeholder="e.g. 5.5" required>
+              </div>
+              <div class="form-group">
+                <label for="formCondition">Condition Score (1-10) *</label>
+                <input type="number" id="formCondition" min="1" max="10" value="7" required>
+              </div>
+              <div class="form-group">
+                <label for="formPower">Power Usage (Watts) *</label>
+                <input type="number" id="formPower" min="0" placeholder="e.g. 150" required>
+              </div>
+              <div class="form-group">
+                <label for="formAction">Action Type *</label>
+                <select id="formAction" required>
+                  <option value="Auto">Auto-Calculate (System Decision)</option>
+                  <option value="Reuse">Reuse</option>
+                  <option value="Recycle">Recycle</option>
+                  <option value="Dispose">Trash/Dispose</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="formHaz">Hazardous Material? *</label>
+                <select id="formHaz" required>
+                  <option value="Auto">Auto-Detect</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary" style="grid-column: span 2; margin-top: 8px;">
+                Add to Inventory & Live Update
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <!-- ======== TAB 3: INVENTORY REGISTRY ======== -->
+    <div class="tab-panel" id="inventory-tab">
+      <section id="inventorySection" class="animate-in">
+        <h2 class="section-title">
+          <span class="section-title__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-inline-title"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+          </span> Asset Inventory Registry
+        </h2>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="filter-bar__search-wrap">
+            <span class="filter-bar__search-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </span>
+            <input type="text" id="searchInput" class="filter-bar__search" placeholder="Search by ID, model, brand, department...">
+          </div>
+          <select id="filterCategory" class="filter-bar__select">
+            <option value="">All Categories</option>
+          </select>
+          <select id="filterDepartment" class="filter-bar__select">
+            <option value="">All Departments</option>
+          </select>
+          <select id="filterCondition" class="filter-bar__select">
+            <option value="">All Conditions</option>
+          </select>
+          <select id="filterAction" class="filter-bar__select">
+            <option value="">All Actions</option>
+          </select>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-sort="item_id">ID <span class="sort-icon">↕</span></th>
+                  <th data-sort="category">Category <span class="sort-icon">↕</span></th>
+                  <th data-sort="device_name">Device <span class="sort-icon">↕</span></th>
+                  <th data-sort="brand">Brand <span class="sort-icon">↕</span></th>
+                  <th data-sort="department">Department <span class="sort-icon">↕</span></th>
+                  <th data-sort="purchase_year">Year <span class="sort-icon">↕</span></th>
+                  <th data-sort="age_years">Age <span class="sort-icon">↕</span></th>
+                  <th data-sort="weight_kg">Weight <span class="sort-icon">↕</span></th>
+                  <th data-sort="condition_score">Score <span class="sort-icon">↕</span></th>
+                  <th data-sort="condition_class">Condition <span class="sort-icon">↕</span></th>
+                  <th data-sort="power_watts">Power <span class="sort-icon">↕</span></th>
+                  <th data-sort="recommended_action">Action <span class="sort-icon">↕</span></th>
+                  <th data-sort="contains_hazardous">Hazardous <span class="sort-icon">↕</span></th>
+                </tr>
+              </thead>
+              <tbody id="inventoryTableBody">
+                <!-- Rows populated by JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <span id="tableFooterInfo">Showing 0 items</span>
+            <button id="exportCSV" class="btn btn-primary btn-sm" style="display: flex; align-items: center; gap: 6px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Export CSV
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ======== TAB 4: ENVIRONMENTAL IMPACT & FORMULAS ======== -->
+    <div class="tab-panel" id="impact-tab">
+      <section id="impactSection" class="animate-in">
+        <h2 class="section-title">
+          <span class="section-title__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-inline-title"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          </span> Environmental Impact Evaluation
+        </h2>
+        <div class="impact-grid">
+
+          <!-- Operational Energy -->
+          <div class="impact-card">
+            <div class="impact-card__title">
+              <span class="nav-icon" style="margin-right: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span>
+              Operational Energy (Annual)
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">Before (old devices running)</span>
+              <span class="impact-card__value impact-card__value--red" id="impactEnergyBefore">—</span>
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">After (optimized fleet)</span>
+              <span class="impact-card__value impact-card__value--green" id="impactEnergyAfter">—</span>
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">Energy Saved</span>
+              <span class="impact-card__value impact-card__value--green" id="impactEnergySaving">—</span>
+            </div>
+            <div class="saving-highlight">
+              <div class="saving-highlight__value" id="impactEnergySavingPct">—</div>
+              <div class="saving-highlight__label">Energy Reduction</div>
+            </div>
+          </div>
+
+          <!-- CO2 Emissions -->
+          <div class="impact-card">
+            <div class="impact-card__title">
+              <span class="nav-icon" style="margin-right: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path><line x1="16" y1="8" x2="2" y2="22"></line></svg></span>
+              Carbon Emissions (Annual)
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">Before</span>
+              <span class="impact-card__value impact-card__value--red" id="impactCO2Before">—</span>
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">After</span>
+              <span class="impact-card__value impact-card__value--green" id="impactCO2After">—</span>
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">CO₂ Saved</span>
+              <span class="impact-card__value impact-card__value--green" id="impactCO2Saving">—</span>
+            </div>
+            <div class="saving-highlight">
+              <div class="saving-highlight__value" id="impactCO2SavingPct">—</div>
+              <div class="saving-highlight__label">Emission Reduction</div>
+            </div>
+          </div>
+
+          <!-- Electricity Cost -->
+          <div class="impact-card">
+            <div class="impact-card__title">
+              <span class="nav-icon" style="margin-right: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>
+              Electricity Cost — BDT (Annual)
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">Before</span>
+              <span class="impact-card__value impact-card__value--red" id="impactCostBefore">—</span>
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">After</span>
+              <span class="impact-card__value impact-card__value--green" id="impactCostAfter">—</span>
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">Cost Saved</span>
+              <span class="impact-card__value impact-card__value--green" id="impactCostSaving">—</span>
+            </div>
+            <div class="saving-highlight">
+              <div class="saving-highlight__value" id="impactCostSavingPct">—</div>
+              <div class="saving-highlight__label">Cost Reduction</div>
+            </div>
+          </div>
+
+          <!-- Waste Diversion -->
+          <div class="impact-card">
+            <div class="impact-card__title">
+              <span class="nav-icon" style="margin-right: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></span>
+              Waste Diversion
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">Landfill Avoided</span>
+              <span class="impact-card__value impact-card__value--green" id="impactLandfillAvoided">—</span>
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">Diversion Rate</span>
+              <span class="impact-card__value impact-card__value--green" id="impactDiversionRate">—</span>
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">Reuse Rate</span>
+              <span class="impact-card__value" id="impactReuseRate">—</span>
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">Recycle Rate</span>
+              <span class="impact-card__value" id="impactRecycleRate">—</span>
+            </div>
+          </div>
+
+          <!-- Embodied Energy Savings -->
+          <div class="impact-card">
+            <div class="impact-card__title">
+              <span class="nav-icon" style="margin-right: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></span>
+              Manufacturing Impact Avoided
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">Embodied Energy Saved</span>
+              <span class="impact-card__value impact-card__value--green" id="impactEmbodiedEnergy">—</span>
+            </div>
+            <div class="impact-card__row">
+              <span class="impact-card__label">Manufacturing CO₂ Avoided</span>
+              <span class="impact-card__value impact-card__value--green" id="impactEmbodiedCO2">—</span>
+            </div>
+            <div class="saving-highlight">
+              <div class="saving-highlight__label">By reusing & repairing devices instead of purchasing new hardware</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+    </div>
+
+    <!-- ======== TAB 5: RULES & STAKEHOLDERS ======== -->
+    <div class="tab-panel" id="rules-tab">
+      
+      <!-- Decision Rules -->
+      <section id="rulesSection" class="animate-in" style="padding: 32px; color: #000;">
+        <article>
+          <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 24px; border-bottom: 1px solid #ccc; padding-bottom: 8px;">Decision Support Engine Logic</h2>
+          
+          <p style="margin-bottom: 12px; font-size: 0.9rem; line-height: 1.6;"><strong>REUSE:</strong> If condition is Good (score 7–10) and age is 5 years or less.</p>
+          <p style="margin-bottom: 12px; font-size: 0.9rem; line-height: 1.6;"><strong>REUSE (Energy warning):</strong> If condition is Good (score 7–10) and age is greater than 5 years.</p>
+          <p style="margin-bottom: 12px; font-size: 0.9rem; line-height: 1.6;"><strong>REPAIR:</strong> If condition is Fair (score 4–6) and repair cost is less than 40% of replacement cost.</p>
+          <p style="margin-bottom: 12px; font-size: 0.9rem; line-height: 1.6;"><strong>RECYCLE:</strong> If condition is Fair (score 4–6) and repair cost is 40% or more of replacement cost, or if condition is Poor (score 2–3).</p>
+          <p style="margin-bottom: 12px; font-size: 0.9rem; line-height: 1.6;"><strong>SAFE DISPOSAL:</strong> If condition is Hazardous (score 1) or contains hazardous materials.</p>
+        </article>
+
+        <!-- Stakeholders -->
+        <article style="margin-top: 48px;">
+          <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 24px; border-bottom: 1px solid #ccc; padding-bottom: 8px;">Stakeholder Responsibilities</h2>
+          
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 24px; margin-bottom: 8px;">Corporate IT Department</h3>
+          <p style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">Inventory audits, physical condition evaluation, data entry, secure hardware decommissioning.</p>
+
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 24px; margin-bottom: 8px;">Purchasing & Procurement</h3>
+          <p style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">Budget approval, hardware replenishment audits, certified recycler vendor alignment.</p>
+
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 24px; margin-bottom: 8px;">Sustainability & ESG Office</h3>
+          <p style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">Reporting environmental compliance metrics, tracking organizational green targets.</p>
+
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 24px; margin-bottom: 8px;">Department Managers</h3>
+          <p style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">Filing decommissioning notices for outdated office/lab assets, safe logistics handover.</p>
+
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 24px; margin-bottom: 8px;">Certified Recyclers</h3>
+          <p style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">Eco-friendly disposal operations, heavy metal extraction, providing safe destruction audit logs.</p>
+
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 24px; margin-bottom: 8px;">Employees & Users</h3>
+          <p style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">Extending device care, returning devices upon cycle completion, participating in recycling campaigns.</p>
+        </article>
+
+        <!-- Merged Deployment Strategy Content -->
+        <article style="margin-top: 48px;">
+          <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 24px; border-bottom: 1px solid #ccc; padding-bottom: 8px;">Practical Deployment Considerations</h2>
+
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 24px; margin-bottom: 8px;">Technical Feasibility</h3>
+          <p style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">Lightweight, frontend-only design. Can be compiled into a static client and deployed on GitHub Pages, S3, or any internal server dashboard. PapaParse library allows processing large datasets (10,000+ items) right in the browser.</p>
+
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 24px; margin-bottom: 8px;">Enterprise Scalability</h3>
+          <p style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">For large organizations, this can be integrated with existing IT asset management systems (like ServiceNow, Jamf, or Microsoft Intune) via standard API mappings to fetch assets in real time.</p>
+
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 24px; margin-bottom: 8px;">Privacy & Data Security</h3>
+          <p style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">Data remains local to the browser and is not uploaded to any remote server, ensuring high corporate confidentiality. Storage units must undergo certified degaussing/data wiping protocols before physical release.</p>
+
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 24px; margin-bottom: 8px;">Operational Costs</h3>
+          <p style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">Practically free software hosting. Core cost considerations are administrative training for condition ratings, acquisition of specialized sorting containers, and licensing certified external e-waste handlers.</p>
+
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 24px; margin-bottom: 8px;">System Limitations</h3>
+          <p style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">Dependent on manual input accuracy unless integrated with asset agents. Does not live-track physical degradation unless paired with battery/hardware diagnostics agents.</p>
+
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-top: 24px; margin-bottom: 8px;">Stakeholder Impact</h3>
+          <p style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">Provides carbon metrics for corporate ESG (Environmental, Social, and Governance) reports, helping executive leadership make sustainable hardware procurement choices and audit waste flows.</p>
+        </article>
+      </section>
+      
+    </div>
+
+    <!-- ======== FOOTER ======== -->
+    <!-- ======== FOOTER ======== -->
+    <footer class="app-footer">
+    </footer>
+
+  </main>
+</div>
+</div> <!-- /#dashboard-view -->
+
+<!-- ======== SCRIPTS ======== -->
+<script src="js/data.js"></script>
+<script src="js/decision-engine.js"></script>
+<script src="js/calculations.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+<!-- ======== EASTER EGG: PEEKING CAT ======== -->
+<img src="cat1.svg" id="peekingCat" class="peeking-cat" alt="Peeking Cat" />
+
+</body>
+</html>
