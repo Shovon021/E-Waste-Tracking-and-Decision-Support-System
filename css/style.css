@@ -1196,7 +1196,7 @@ body {
     top: 0;
     left: -320px; /* Hidden off-screen by default */
     width: 280px;
-    height: 100vh;
+    bottom: 0; /* Attach to bottom to fix mobile navigation bar cut-off */
     z-index: 2000;
     transition: left 0.3s ease;
     box-shadow: 4px 0 15px rgba(0,0,0,0.2);
@@ -1291,8 +1291,6 @@ body {
   background: url('../logo4.svg') no-repeat center center fixed;
   background-size: cover;
   background-color: #f0fdf4; /* soft green fallback */
-}
-
 }
 
 .loading-view {
