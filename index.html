@@ -59,6 +59,32 @@
   </div>
 </div>
 
+<!-- ======== WEBCAM CAPTURE MODAL ======== -->
+<div id="webcamModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-header">
+      <h2 style="display: flex; align-items: center; gap: 8px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--info-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-inline-title"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+        Webcam Device Scanner
+      </h2>
+      <button id="btnCloseWebcam" class="btn-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Video Stream Frame -->
+      <div style="position: relative; border-radius: 8px; overflow: hidden; background: #000; aspect-ratio: 4/3; width: 100%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color);">
+        <video id="webcamVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+        <span id="webcamErrorMsg" style="position: absolute; padding: 12px; text-align: center; color: #ef4444; font-size: 0.85rem; display: none;"></span>
+      </div>
+      
+      <!-- Control Buttons -->
+      <div class="modal-actions" style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px;">
+        <button type="button" id="btnCancelWebcam" class="btn" style="padding: 10px 20px; border: 1px solid #ccc; background: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+        <button type="button" id="btnCaptureWebcam" class="btn btn-primary" style="padding: 10px 20px;">Take Photo & Scan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ======== LOADING VIEW ======== -->
 <div id="loading-view" class="loading-view" style="display: none;">
   <div class="loading-pulse">
@@ -295,6 +321,14 @@
               <span class="file-info" id="fileInfo">No file selected</span>
             </div>
             
+            <div class="ai-toggle-container" style="margin-top: 16px; display: flex; align-items: center; gap: 10px; background: rgba(16, 185, 129, 0.05); padding: 12px; border-radius: 8px; border: 1px dashed rgba(16, 185, 129, 0.2);">
+              <input type="checkbox" id="enableAICleanup" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary-light);">
+              <label for="enableAICleanup" style="font-size: 0.85rem; font-weight: 700; color: var(--primary-color); cursor: pointer; display: flex; align-items: center; user-select: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; flex-shrink: 0;"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5 5 3Z"></path><path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5Z"></path></svg>
+                AI Smart Cleanup & Imputation
+              </label>
+            </div>
+            
           </div>
 
           <!-- Add New Item -->
@@ -304,9 +338,28 @@
             </h3>
             <p class="card-desc">Input a new electronic device. All metrics, charts, and evaluations will update live on submit.</p>
             
+            <!-- Vision Upload Section -->
+            <div class="vision-upload-container" style="margin-bottom: 20px; padding: 14px; background: rgba(8, 145, 178, 0.04); border-radius: 8px; border: 1px dashed rgba(8, 145, 178, 0.2); display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-size: 0.85rem; font-weight: 700; color: var(--info-color); display: flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                Auto-fill form via Photo (AI Vision)
+              </span>
+              <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+                <input type="file" id="visionFileInput" accept="image/*" style="display: none;">
+                <button type="button" class="btn" id="visionBrowseBtn" style="font-size: 0.75rem; padding: 6px 12px; background: var(--info-color); color: #fff; border-radius: 4px; box-shadow: 0 2px 5px rgba(8, 145, 178, 0.2);">
+                  Upload Photo
+                </button>
+                <button type="button" class="btn" id="visionCameraBtn" style="font-size: 0.75rem; padding: 6px 12px; background: #0891b2; color: #fff; border-radius: 4px; box-shadow: 0 2px 5px rgba(8, 145, 178, 0.2); display: flex; align-items: center; gap: 4px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                  Open Camera
+                </button>
+                <span id="visionFileInfo" style="font-size: 0.75rem; color: var(--text-light);">No photo uploaded</span>
+              </div>
+            </div>
+            
             <form class="form-grid" id="addItemForm">
               <div class="form-group">
-                <label for="formCategory">Category *</label>
+                <label for="formCategory">Category/Type *</label>
                 <select id="formCategory" required>
                   <option value="Computer">Computer</option>
                   <option value="Monitor">Monitor</option>
@@ -315,8 +368,9 @@
                   <option value="Battery">Battery</option>
                   <option value="Networking">Networking</option>
                   <option value="Storage">Storage</option>
-                  <option value="Others">Others</option>
+                  <option value="Others">Others (Specify)</option>
                 </select>
+                <input type="text" id="formCustomCategory" placeholder="Specify Category/Type (e.g. Mouse, Printer)" style="display: none; margin-top: 8px; width: 100%;">
               </div>
               <div class="form-group">
                 <label for="formDevice">Device Model *</label>
@@ -432,9 +486,14 @@
           </div>
           <div class="table-footer">
             <span id="tableFooterInfo">Showing 0 items</span>
-            <button id="exportCSV" class="btn btn-primary btn-sm" style="display: flex; align-items: center; gap: 6px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Export CSV
-            </button>
+            <div style="display: flex; gap: 10px;">
+              <button id="btnClearData" class="btn" style="display: flex; align-items: center; gap: 6px; border: 1px solid var(--danger-color); color: var(--danger-color); background: transparent; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 700; transition: all 0.2s ease;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> Clear Dataset
+              </button>
+              <button id="exportCSV" class="btn btn-primary btn-sm" style="display: flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Export CSV
+              </button>
+            </div>
           </div>
         </div>
       </section>
