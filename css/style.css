@@ -182,7 +182,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  overflow: hidden; /* Prevent scrollbar */
+  flex: 1; /* Allow navigation to fill remaining space */
+  overflow-y: auto; /* Enable scrollbar if screen is too small */
 }
 
 .nav-item {
@@ -1186,8 +1187,11 @@ body {
   
   /* Make app-main fill remaining space under header */
   .app-main {
-    height: calc(100vh - 60px);
+    height: calc(100dvh - 60px);
     padding: 16px;
+    padding-bottom: 100px; /* Safe padding for mobile bottom bar */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Sidebar becomes a slide-out drawer */
@@ -1267,8 +1271,16 @@ body {
   .form-grid {
     grid-template-columns: 1fr;
   }
+  .form-grid button[type="submit"],
+  .form-grid .btn-primary {
+    grid-column: span 1 !important;
+  }
   .form-group:last-child {
     grid-column: span 1;
+  }
+  .management-card {
+    padding: 16px;
+    min-height: auto !important;
   }
   
   /* Fix impact cards on mobile */
